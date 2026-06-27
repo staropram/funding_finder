@@ -37,15 +37,30 @@ class NihrScraper:
         return funding_data
 
     async def fetch_pages(self,num_pages):
-        sem = asyncio.Semaphore(5)
-        tasks = [self.fetch_page(sem,i) for i in range(num_pages)]
+        sem = asyncio.Semaphore(1)
+        tasks = [self.fetch_page(sem,i) for i in range(1,num_pages)]
         results = await asyncio.gather(*tasks)
         return results
 
     async def fetch_page(self,sem,page_index):
         async with sem:
+            # adjust params
+            params = self.http_client.params
+            params = params.set("page",page_index)
             # page fetching code goes here
-            print("hi")
+            print(params)
+            cached_fn = Path(f"data/cache/nihr_page{page_index}")
+            if cached_fn.exists():
+                print(f"loading cached data for page ",page_index)
+                content = cached_fn.read_text()
+            else:
+                print("fetching")
+                req = await self.http_client.get(self.url,params=params)
+                cached_fn.write_bytes(req.content)
+                content = req.content
+            
+            page_data = BeautifulSoup(content,"lxml")
+            # extract the funding cards
             return page_index
 
     def extract_funding_cards(self):
