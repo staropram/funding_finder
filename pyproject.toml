@@ -1,0 +1,18 @@
+[project]
+name = "fundscrape"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+    "asyncio>=4.0.0",
+    "bs4>=0.0.2",
+    "httpx>=0.28.1",
+    "lxml>=6.1.1",
+    "pyright>=1.1.411",
+    "pytest>=9.1.1",
+    "ruff>=0.15.20",
+]
+[build-system]
+requires = ["uv_build>=0.11.24,<0.12"]
+build-backend = "uv_build"
