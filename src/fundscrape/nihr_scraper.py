@@ -2,6 +2,10 @@ import httpx
 from pathlib import Path
 from bs4 import BeautifulSoup
 import asyncio
+import re
+from datetime import datetime, timezone
+
+
 
 class NihrScraper:
     async def load_funding_data(self,force_reload=False):
@@ -51,19 +55,34 @@ class NihrScraper:
             print(params)
             cached_fn = Path(f"data/cache/nihr_page{page_index}")
             if cached_fn.exists():
-                print(f"loading cached data for page ",page_index)
+                print(f"loading cached data for page {page_index}")
                 content = cached_fn.read_text()
             else:
-                print("fetching")
+                print(f"fetching data for page {page_index}")
                 req = await self.http_client.get(self.url,params=params)
                 cached_fn.write_bytes(req.content)
                 content = req.content
             
             page_data = BeautifulSoup(content,"lxml")
+        
+            # extract the funding cards
+            funding_card_divs = page_data.find_all("div",class_="node--type-funding-opportunity")
+            funding_cards = [self.extract_funding_card_data(fcd) for fcd in funding_card_divs]
             # extract the funding cards
             return page_index
 
-    def extract_funding_cards(self):
+    def extract_funding_card_data(self,fcd):
+        print("Extracting funding card data")
+        # note this is crude and brittle
+        funding_link = fcd.find("a")["href"]
+        funding_title = fcd.find("div",id=re.compile("^card-title")).find("h3").text.strip(" \n")
+        funding_desc = fcd.find("div",class_=re.compile("^text-regular")).find("div").text
+        funding_opens = self.parse_timestamp(fcd.find("div",class_="field--name-field-start-datetime").find("time")["datetime"])
+        funding_closes = self.parse_timestamp(fcd.find("div",class_="field--name-field-end-datetime").find("time")["datetime"])
+        funding_status = fcd.find("div",class_="status").text.strip("\n ")
+        print("ok")
+
+
         self.funding_data
 
     def setup_http_client(self):
@@ -88,6 +107,8 @@ class NihrScraper:
 
         #self.extract_funding_cards()
 
+    def parse_timestamp(self,ts: str) -> datetime:
+        return datetime.fromisoformat(ts.replace("Z", "+00:00")).astimezone(timezone.utc)
 
         
 
