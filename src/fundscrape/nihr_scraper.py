@@ -4,7 +4,16 @@ from bs4 import BeautifulSoup
 import asyncio
 import re
 from datetime import datetime, timezone
+from dataclasses import dataclass
 
+@dataclass
+class NihrFundingCard:
+    link : str
+    title : str
+    desc : str
+    opens : datetime
+    closes : datetime
+    status : str
 
 
 class NihrScraper:
@@ -68,22 +77,20 @@ class NihrScraper:
             # extract the funding cards
             funding_card_divs = page_data.find_all("div",class_="node--type-funding-opportunity")
             funding_cards = [self.extract_funding_card_data(fcd) for fcd in funding_card_divs]
-            # extract the funding cards
+            return funding_cards
+
             return page_index
 
     def extract_funding_card_data(self,fcd):
         print("Extracting funding card data")
         # note this is crude and brittle
-        funding_link = fcd.find("a")["href"]
-        funding_title = fcd.find("div",id=re.compile("^card-title")).find("h3").text.strip(" \n")
-        funding_desc = fcd.find("div",class_=re.compile("^text-regular")).find("div").text
-        funding_opens = self.parse_timestamp(fcd.find("div",class_="field--name-field-start-datetime").find("time")["datetime"])
-        funding_closes = self.parse_timestamp(fcd.find("div",class_="field--name-field-end-datetime").find("time")["datetime"])
-        funding_status = fcd.find("div",class_="status").text.strip("\n ")
-        print("ok")
-
-
-        self.funding_data
+        link = fcd.find("a")["href"],
+        title = fcd.find("div",id=re.compile("^card-title")).find("h3").text.strip(" \n"),
+        desc = fcd.find("div",class_=re.compile("^text-regular")).find("div").text,
+        opens = self.parse_timestamp(fcd.find("div",class_="field--name-field-start-datetime").find("time")["datetime"]),
+        closes = self.parse_timestamp(fcd.find("div",class_="field--name-field-end-datetime").find("time")["datetime"]),
+        status = fcd.find("div",class_="status").text.strip("\n "),
+        return NihrFundingCard(link,title,desc,opens,closes,status)
 
     def setup_http_client(self):
         return httpx.AsyncClient(
