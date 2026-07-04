@@ -5,15 +5,16 @@ import asyncio
 import re
 from datetime import datetime, timezone
 from dataclasses import dataclass
+from fundscrape.nihr_funding_card import NihrFundingCard
 
-@dataclass
-class NihrFundingCard:
-    link : str
-    title : str
-    desc : str
-    opens : datetime
-    closes : datetime
-    status : str
+#@dataclass
+#class NihrFundingCard:
+#    link : str
+#    title : str
+#    desc : str
+#    opens : datetime
+#    closes : datetime
+#    status : str
 
 
 class NihrScraper:
@@ -76,21 +77,16 @@ class NihrScraper:
         
             # extract the funding cards
             funding_card_divs = page_data.find_all("div",class_="node--type-funding-opportunity")
-            funding_cards = [self.extract_funding_card_data(fcd) for fcd in funding_card_divs]
+            funding_cards = []
+            for fcd in funding_card_divs:
+                try:
+                    funding_cards.append(NihrFundingCard(fcd))
+                except Exception as e:
+                    print("Failed to parse funding card: ",e)
+                    print(fcd.getText())
+            
             return funding_cards
 
-            return page_index
-
-    def extract_funding_card_data(self,fcd):
-        print("Extracting funding card data")
-        # note this is crude and brittle
-        link = fcd.find("a")["href"],
-        title = fcd.find("div",id=re.compile("^card-title")).find("h3").text.strip(" \n"),
-        desc = fcd.find("div",class_=re.compile("^text-regular")).find("div").text,
-        opens = self.parse_timestamp(fcd.find("div",class_="field--name-field-start-datetime").find("time")["datetime"]),
-        closes = self.parse_timestamp(fcd.find("div",class_="field--name-field-end-datetime").find("time")["datetime"]),
-        status = fcd.find("div",class_="status").text.strip("\n "),
-        return NihrFundingCard(link,title,desc,opens,closes,status)
 
     def setup_http_client(self):
         return httpx.AsyncClient(
