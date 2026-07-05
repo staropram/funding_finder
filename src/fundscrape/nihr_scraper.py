@@ -1,21 +1,12 @@
+import re
 import httpx
+import asyncio
+from hashlib import sha256
 from pathlib import Path
 from bs4 import BeautifulSoup
-import asyncio
-import re
 from datetime import datetime, timezone
 from dataclasses import dataclass
 from fundscrape.nihr_funding_card import NihrFundingCard
-
-#@dataclass
-#class NihrFundingCard:
-#    link : str
-#    title : str
-#    desc : str
-#    opens : datetime
-#    closes : datetime
-#    status : str
-
 
 class NihrScraper:
     async def load_funding_data(self,force_reload=False):
@@ -44,19 +35,53 @@ class NihrScraper:
         # fetch each page
         num_pages = int(funding_data.find("li",class_="page-item--last").find_all("span")[-1].text)
         print(f"We have {num_pages} pages to fetch")
-        # construct the URLs
-        # do this asynchronously 5 at a time
-        results = await self.fetch_pages(num_pages)
+        # get the funding cards
+        funding_cards = await self.fetch_funding_card_pages(num_pages)
+        # now fetch the actual details
+        funding_details = await self.fetch_funding_detail_pages(funding_cards)
 
-        return funding_data
+        return funding_details
 
-    async def fetch_pages(self,num_pages):
+    async def fetch_funding_detail_page(self,sem,i,funding_card):
+        async with sem:
+            # we don't want any params
+            params = self.http_client.params
+            # use hash of URL for cache name
+            url = funding_card.link
+            digest = sha256(url.encode("utf-8")).hexdigest()
+            cached_fn = Path(f"data/cache/{digest}")
+            if cached_fn.exists():
+                print(f"loading cached data for URL {url}")
+                content = cached_fn.read_text()
+            else:
+                print(f"fetching data for URL {url}")
+                # note use empty query params
+                req = await self.http_client.get(url=url,params=httpx.QueryParams())
+                content = req.content
+                cached_fn.write_bytes(content)
+
+            print(content)
+            return None
+
+    async def fetch_funding_detail_pages(self,funding_cards):
         sem = asyncio.Semaphore(1)
-        tasks = [self.fetch_page(sem,i) for i in range(1,num_pages)]
+        tasks = [self.fetch_funding_detail_page(sem,i,funding_cards[i]) for i in range(1,len(funding_cards))]
         results = await asyncio.gather(*tasks)
         return results
 
-    async def fetch_page(self,sem,page_index):
+    async def fetch_funding_card_pages(self,num_pages):
+        sem = asyncio.Semaphore(1)
+        tasks = [self.fetch_funding_card_page(sem,i) for i in range(1,num_pages)]
+        results = await asyncio.gather(*tasks)
+        # flatten this into a single list
+        flat_results = [
+            funding_card 
+            for page_of_cards in results
+            for funding_card in page_of_cards
+        ]
+        return flat_results
+
+    async def fetch_funding_card_page(self,sem,page_index):
         async with sem:
             # adjust params
             params = self.http_client.params
@@ -97,7 +122,7 @@ class NihrScraper:
             params = {
                 "status[Closing soon]": "Closing soon",
                 "status[Open]": "Open",
-                "status[Opening soon]": "Opening soon",
+                "status[Opening soon]": "Opening soon"
             }
         )
 

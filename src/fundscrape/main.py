@@ -1,4 +1,3 @@
-from fundscrape.funding_sources import FUNDING_SOURCES
 from fundscrape.nihr_scraper import NihrScraper
 import os
 import asyncio
