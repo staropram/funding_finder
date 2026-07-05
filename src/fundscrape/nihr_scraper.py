@@ -110,8 +110,6 @@ class NihrScraper:
 
         #self.extract_funding_cards()
 
-    def parse_timestamp(self,ts: str) -> datetime:
-        return datetime.fromisoformat(ts.replace("Z", "+00:00")).astimezone(timezone.utc)
 
         
 
