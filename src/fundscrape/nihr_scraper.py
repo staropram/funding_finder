@@ -48,7 +48,7 @@ class NihrScraper:
             try:
                 print(f"Attempting to fetch {url}")
                 response = self.http_client.get(url=url,params=params)
-                return response.cont
+                return response.content
             except (httpx.TimeoutException,httpx.TransportError) as e:
                 if attempt==max_retries:
                     raise
