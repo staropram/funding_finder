@@ -2,6 +2,7 @@ import re
 import time
 import httpx
 import asyncio
+import random
 from hashlib import sha256
 from pathlib import Path
 from bs4 import BeautifulSoup
@@ -43,11 +44,12 @@ class NihrScraper:
 
         return funding_details
 
-    def fetch_url_with_retries(self,url,max_retries=3,params=httpx.QueryParams()):
+    def fetch_url_with_retries(self,url,max_retries=3,params=None):
         for attempt in range(1,max_retries+1):
             try:
                 print(f"Attempting to fetch {url}")
                 response = self.http_client.get(url=url,params=params)
+                response.raise_for_status()
                 return response.content
             except (httpx.TimeoutException,httpx.TransportError) as e:
                 if attempt==max_retries:
@@ -61,7 +63,7 @@ class NihrScraper:
                 status = e.response.status_code
 
                 if status in (429, 500, 502, 503, 504):
-                    if attempt == max_attempts:
+                    if attempt == max_retries:
                         raise
 
                     wait = attempt * 5
@@ -73,7 +75,7 @@ class NihrScraper:
 
 
 
-    def fetch_url_cached(self,url,cached_fn,max_retries=3,params=httpx.QueryParams(),force_reload=False):
+    def fetch_url_cached(self,url,cached_fn,max_retries=3,params=None,force_reload=False):
         if cached_fn.exists() and not force_reload:
             print(f"loading cached data for URL {url}")
             return cached_fn.read_bytes()
@@ -81,8 +83,10 @@ class NihrScraper:
         content = self.fetch_url_with_retries(url,max_retries=max_retries,params=params)
         cached_fn.write_bytes(content)
 
-        # force a little sleep as NIHR is a bastard
-        time.sleep(1.5)
+        # force a little random sleep
+        delay = random.uniform(2, 5)
+        print(f"Sleeping for {delay:.1f}s")
+        time.sleep(delay)
 
         return content
 
@@ -90,7 +94,10 @@ class NihrScraper:
         # we don't want any params
         params = self.http_client.params
         # use hash of URL for cache name
-        url = funding_card.link
+        url = funding_card.link.replace(
+            "https://nihr.ac.uk/",
+            "https://www.nihr.ac.uk/",
+        )
         digest = sha256(url.encode("utf-8")).hexdigest()
         cached_fn = Path(f"data/cache/{digest}")
         content = self.fetch_url_cached(url=url,cached_fn=cached_fn)
@@ -117,8 +124,7 @@ class NihrScraper:
 
     def fetch_funding_card_page(self,page_number):
         # adjust params
-        params = self.http_client.params
-        params = params.set("page",page_number)
+        params = self.funding_params.set("page",page_number)
             
         cached_fn = Path(f"data/cache/nihr_page{page_number}")
         print(f"fetching data for page {page_number}")
@@ -147,13 +153,14 @@ class NihrScraper:
         return httpx.Client(
             headers = {
                 "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36",
-                "Accept" : "text/html"
+                "Accept": (
+                    "text/html,application/xhtml+xml,application/xml;q=0.9,"
+                    "image/avif,image/webp,*/*;q=0.8"
+                ),
+                "Accept-Language": "en-GB,en;q=0.9"
             },
-            params = {
-                "status[Closing soon]": "Closing soon",
-                "status[Open]": "Open",
-                "status[Opening soon]": "Opening soon"
-            }
+            follow_redirects=True,
+            timeout=httpx.Timeout(30.0)
         )
 
 
@@ -161,6 +168,11 @@ class NihrScraper:
         print(f"Loading NIHR page")
         self.main_funding_endpoint = "https://www.nihr.ac.uk/funding-opportunities?"
         self.cache_file = Path("data/cache/nihr_opportunities.html")
+        self.funding_params = httpx.QueryParams({
+            "status[Closing soon]": "Closing soon",
+            "status[Open]": "Open",
+            "status[Opening soon]": "Opening soon"
+        })
         self.http_client = self.setup_http_client()
 
         #self.extract_funding_cards()
