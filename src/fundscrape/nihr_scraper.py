@@ -81,10 +81,11 @@ class NihrScraper:
             return cached_fn.read_bytes()
 
         content = self.fetch_url_with_retries(url,max_retries=max_retries,params=params)
+        print(f"Writing cached file for {url}")
         cached_fn.write_bytes(content)
 
         # force a little random sleep
-        delay = random.uniform(2, 5)
+        delay = random.uniform(1, 3)
         print(f"Sleeping for {delay:.1f}s")
         time.sleep(delay)
 
