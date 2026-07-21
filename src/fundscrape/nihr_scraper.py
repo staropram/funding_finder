@@ -9,6 +9,7 @@ from bs4 import BeautifulSoup
 from datetime import datetime, timezone
 from dataclasses import dataclass
 from fundscrape.nihr_funding_card import NihrFundingCard
+from fundscrape.nihr_detail_page import NihrDetailPage
 
 class NihrScraper:
     def load_funding_data(self,force_reload=False):
@@ -103,7 +104,7 @@ class NihrScraper:
         cached_fn = Path(f"data/cache/{digest}")
         content = self.fetch_url_cached(url=url,cached_fn=cached_fn)
 
-        return None
+        return NihrDetailPage(content)
 
     def fetch_funding_detail_pages(self,funding_cards):
         results = []
