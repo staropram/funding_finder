@@ -1,45 +1,76 @@
 import re
 import time
+import json
 import httpx
 import asyncio
 import random
 from hashlib import sha256
 from pathlib import Path
 from bs4 import BeautifulSoup
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 from dataclasses import dataclass
 from fundscrape.nihr_funding_card import NihrFundingCard
 from fundscrape.nihr_detail_page import NihrDetailPage
+from fundscrape.json_handler import JsonEncoder
 
 class NihrScraper:
-    def load_funding_data(self,force_reload=False):
-        # load the cached top level search if it doesn't exist or is requested
-        if self.cache_file.exists() and force_reload==False:
-            print("Cached top level file exists, loading")
-            html_text = self.cache_file.read_text()
 
-            funding_data = BeautifulSoup(
-                self.cache_file.read_text(),
-                "lxml"
+    def load_funding_cards(self,force_reload=False):
+        # get the current ts
+        current_ts =  datetime.now(timezone.utc).isoformat(),
+
+        # check when we last fetched and refetch if funding_freshness_days is exceeded
+        cached_cards_fn = Path("data/cached_cards.json")
+        if not cached_cards_fn.exists():
+            force_reload = True
+
+        # load the cached_cards
+        if not force_reload:
+            with open(cached_cards_fn, "r", encoding="utf-8") as file:
+                cached_cards_json = json.load(file)
+            last_fetched_ts = datetime.fromisoformat(cached_cards_json["fetched_at"])
+            cache_is_stale = (
+                datetime.now(timezone.utc) - last_fetched_ts
+                > timedelta(days=self.funding_freshness_days)
             )
-        else:
-            print("Top-level does not exist, fetching")
-            req = self.http_client.get(self.url)
-            if req.status_code != 200:
-                print(f"Not OK: code={req.status_code}")
-                print(req.content)
-                exit()
+            if not cache_is_stale:
+                funding_cards = [
+                    NihrFundingCard.from_json(card_data)
+                    for card_data in cached_card_data["cards"]
+                ]
+                return(funding_cards)
 
-            # cache the content
-            print("Writing requested HTML")
-            self.cache_file.write_bytes(req.content)
-            funding_data = BeautifulSoup(req.content,"lxml")
+        print("Cache is stale fetching top level funding data")
+        main_page_data = self.fetch_url_with_retries(self.main_funding_endpoint,params=self.funding_params)
+        funding_data = BeautifulSoup(main_page_data,"lxml")
 
         # fetch each page
         num_pages = int(funding_data.find("li",class_="page-item--last").find_all("span")[-1].text)
         print(f"We have {num_pages} pages to fetch")
         # get the funding cards
         funding_cards = self.fetch_funding_card_pages(num_pages)
+
+        cached_card_data = {
+            "fetched_at": current_ts,
+            "cards": funding_cards
+        }
+
+        with cached_cards_fn.open("w", encoding="utf-8") as file:
+            json.dump(
+                cached_card_data,
+                file,
+                cls=JsonEncoder,
+                indent=2,
+                ensure_ascii=False,
+            )
+
+        return funding_cards
+
+    def load_funding_data(self,force_reload=False):
+
+        # load the funding cards
+        funding_cards = self.load_funding_cards(force_reload=force_reload)
+
         # now fetch the actual details
         funding_details = self.fetch_funding_detail_pages(funding_cards)
 
@@ -77,7 +108,7 @@ class NihrScraper:
 
 
     def fetch_url_cached(self,url,cached_fn,max_retries=3,params=None,force_reload=False):
-        if cached_fn.exists() and not force_reload:
+        if not force_reload and cached_fn.exists():
             print(f"loading cached data for URL {url}")
             return cached_fn.read_bytes()
 
@@ -116,6 +147,10 @@ class NihrScraper:
         results = []
         for page_number in range(0,num_pages):
             results.append(self.fetch_funding_card_page(page_number))
+            delay = random.uniform(0.5, 2)
+            print(f"Sleeping for {delay:.1f}s")
+            time.sleep(delay)
+
         # flatten this into a single list
         flat_results = [
             funding_card 
@@ -166,7 +201,7 @@ class NihrScraper:
         )
 
 
-    def __init__(self,force_reload=False):
+    def __init__(self,force_reload=False,funding_freshness_days=1):
         print(f"Loading NIHR page")
         self.main_funding_endpoint = "https://www.nihr.ac.uk/funding-opportunities?"
         self.cache_file = Path("data/cache/nihr_opportunities.html")
@@ -176,6 +211,7 @@ class NihrScraper:
             "status[Opening soon]": "Opening soon"
         })
         self.http_client = self.setup_http_client()
+        self.funding_freshness_days = funding_freshness_days
 
         #self.extract_funding_cards()
 
