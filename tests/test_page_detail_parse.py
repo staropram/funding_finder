@@ -3,12 +3,12 @@ from pathlib import Path
 import os
 
 
-def test_parse_nihr_page():
+def test_parse_nihr_page(page_num=0):
     # load the html
-    test_page_fn = Path("tests/test_data/detail_page1.html")
+    test_page_fn = Path(f"tests/test_data/detail_page{page_num}.html")
     content = test_page_fn.read_bytes()
     # setup the page
-    detail_page = NihrDetailPage(content)
+    detail_page = NihrDetailPage(content,funding_card=None)
     print(detail_page)
 
     # assert stuff, I think we just check for non-empty here
@@ -18,4 +18,4 @@ def test_parse_nihr_page():
 
 
 if __name__ == "__main__":
-    test_parse_nihr_page()
+    test_parse_nihr_page(1)

@@ -28,7 +28,7 @@ class NihrScraper:
         if not force_reload:
             with open(cached_cards_fn, "r", encoding="utf-8") as file:
                 cached_cards_json = json.load(file)
-            last_fetched_ts = datetime.fromisoformat(cached_cards_json["fetched_at"])
+            last_fetched_ts = datetime.fromisoformat(cached_cards_json["fetched_at"][0])
             cache_is_stale = (
                 datetime.now(timezone.utc) - last_fetched_ts
                 > timedelta(days=self.funding_freshness_days)
@@ -36,7 +36,7 @@ class NihrScraper:
             if not cache_is_stale:
                 funding_cards = [
                     NihrFundingCard.from_json(card_data)
-                    for card_data in cached_card_data["cards"]
+                    for card_data in cached_cards_json["cards"]
                 ]
                 return(funding_cards)
 
@@ -69,12 +69,10 @@ class NihrScraper:
     def load_funding_data(self,force_reload=False):
 
         # load the funding cards
-        funding_cards = self.load_funding_cards(force_reload=force_reload)
+        self.funding_cards = self.load_funding_cards(force_reload=force_reload)
 
         # now fetch the actual details
-        funding_details = self.fetch_funding_detail_pages(funding_cards)
-
-        return funding_details
+        self.funding_details = self.fetch_funding_detail_pages(self.funding_cards)
 
     def fetch_url_with_retries(self,url,max_retries=3,params=None):
         for attempt in range(1,max_retries+1):
@@ -133,9 +131,10 @@ class NihrScraper:
         )
         digest = sha256(url.encode("utf-8")).hexdigest()
         cached_fn = Path(f"data/cache/{digest}")
+        print(f"Cached fn: {cached_fn}")
         content = self.fetch_url_cached(url=url,cached_fn=cached_fn)
 
-        return NihrDetailPage(content)
+        return NihrDetailPage(content,funding_card)
 
     def fetch_funding_detail_pages(self,funding_cards):
         results = []
@@ -213,7 +212,9 @@ class NihrScraper:
         self.http_client = self.setup_http_client()
         self.funding_freshness_days = funding_freshness_days
 
-        #self.extract_funding_cards()
+        # load the data
+        self.load_funding_data(force_reload=force_reload)
+
 
 
         

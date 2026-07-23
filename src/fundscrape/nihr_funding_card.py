@@ -3,6 +3,41 @@ import arrow
 from datetime import datetime, timezone
 
 class NihrFundingCard:
+    @classmethod
+    def dummy_card(cls):
+        card = cls.__new__(cls)
+        card.link = "https://nihr.ac.uk/funding/hsdr-researcher-led/2026456"
+        card.title = "HSDR Researcher-led",
+        card.desc = "The Health and Social Care Delivery Research (HSDR) Programme is looking to fund high quality, well designed research to provide findings which meet the needs of NHS and social care managers and leaders.",
+        card.status = "Open"
+        card.opens = datetime.fromisoformat("2026-06-24T12:00:00+00:00")
+        card.closes = datetime.fromisoformat("2026-09-16T12:00:00+00:00")
+
+        return card
+
+    @classmethod
+    def from_json(cls, data):
+        card = cls.__new__(cls)
+
+        card.link = data["link"]
+        card.title = data["title"]
+        card.desc = data["desc"]
+        card.status = data["status"]
+
+        card.opens = (
+            datetime.fromisoformat(data["opens"])
+            if data["opens"] is not None
+            else None
+        )
+
+        card.closes = (
+            datetime.fromisoformat(data["closes"])
+            if data["closes"] is not None
+            else None
+        )
+
+        return card
+
     def extract_link(self,fcd):
         link = fcd.find("a",href=True)
         if link==None:

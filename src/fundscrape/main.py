@@ -1,13 +1,14 @@
 from fundscrape.nihr_scraper import NihrScraper
+from fundscrape.ai_assessor import AIAssessor
 import os
 import json
 
 
 def main():
-    print("Hello from fundscrape!")
-    print(os.getcwd())
-    scraper = NihrScraper(funding_freshness_days=5)
-    scraper.load_funding_data()
+    # setup the scraper, this will fetch the latest opportunities
+    scraper = NihrScraper(funding_freshness_days=5,force_reload=False)
+    ai_assessor = AIAssessor(scraper.funding_details)
+
 
 
 

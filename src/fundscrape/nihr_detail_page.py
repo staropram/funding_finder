@@ -9,11 +9,14 @@ class NihrDetailPage:
         overview_div = self.fpd.find("div",id="tab-overview")
         if overview_div==None:
             self.overview_main = "No overview details"
-        paragraphs = overview_div.find("div",class_="paragraph--type--rich-text")
+        else:
+            paragraphs = overview_div.find("div",class_="paragraph--type--rich-text")
+
         if paragraphs==None:
             self.overview_main = "No overview details"
-        paragraph_text = paragraphs.text
-        self.overview_main = re.sub(r"\n{3,}", "\n\n", paragraph_text)
+        else:
+            paragraph_text = paragraphs.text
+            self.overview_main = re.sub(r"\n{3,}", "\n\n", paragraph_text)
         
         # eligibility
         #eligibility_p = overview_div.find("h2", string="Eligibility").find_next_sibling("p")
@@ -25,14 +28,16 @@ class NihrDetailPage:
         timeline_div = overview_div.find("div",class_="timeline")
         if timeline_div==None:
             self.overview_timeline = "No timeline found"
-        timeline_text = timeline_div.text
-        self.overview_timeline = re.sub(r"\n{3,}","\n\n",timeline_text)
+        else:
+            timeline_text = timeline_div.text
+            self.overview_timeline = re.sub(r"\n{3,}","\n\n",timeline_text)
 
     def extract_research_spec(self):
         rspec_div = self.fpd.find("div",id="tab-research-specification")
         if rspec_div==None:
             self.research_spec = "No research spec found"
-        self.research_spec = rspec_div.text
+        else:
+            self.research_spec = rspec_div.text
 
 
     def __str__(self):
@@ -42,8 +47,9 @@ class NihrDetailPage:
         output_string = output_string + f"RESEARCH SPECIFICATION: {self.research_spec}\n"
         return output_string
 
-    def __init__(self,fpd):
+    def __init__(self,fpd,funding_card):
         self.fpd = BeautifulSoup(fpd,"lxml")
+        self.funding_card = funding_card
         # parse the doc
         self.extract_overview()
         self.extract_research_spec()
