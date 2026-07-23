@@ -16,5 +16,7 @@ def test_ai_assessor():
         ai_prompts_path ="config/ai_prompts.json",
     )
 
+    ai_summary = ai_assessor.make_ai_summary_of_funding_detail_page(detail_page)
+
 if __name__ == "__main__":
     test_ai_assessor()

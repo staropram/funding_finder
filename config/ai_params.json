@@ -1,6 +1,10 @@
 {
- "model" : "deepseek-v4-flash",
- "stream" : "False",
- "extra_body" : "{\"thinking\": {\"type\": \"disabled\"}",
- "reasoning_effort" : "high"
+"model" : "deepseek-v4-flash",
+"stream" : "False",
+"extra_body": {
+			"thinking": {
+					  "type": "disabled"
+		    } 
+},
+"reasoning_effort" : "high"
  }
