@@ -1,6 +1,5 @@
 {
 	"objectives":[
-		{"name" : "Kidney data", "details" :"We have access to pseudonymised individual level renal data linked to GP and other hospital data, we need to find something to do with it. We also have free-text renal data, so an LLM thing is also possible, but the priority is probably the kidney stuff. Our first idea is to see if people with routine markers are on the register, i.e is anyone missed and then to quantify inequalities or just the scale of the problem."},
-		{
+		{"name" : "Kidney data", "details" :"We have access to pseudonymised individual level renal data linked to GP and other hospital data, we need to find something to do with it. We also have free-text renal data, so an LLM thing is also possible, but the priority is probably the kidney stuff. Our first idea is to see if people with routine markers are on the register, i.e is anyone missed and then to quantify inequalities or just the scale of the problem."}
 	]
 }

@@ -18,7 +18,8 @@ class AIAssessor:
             messages=message_list,
             stream=(self.ai_params["stream"]=="True"),
             reasoning_effort=self.ai_params["reasoning_effort"],
-            extra_body=self.ai_params["extra_body"]
+            extra_body=self.ai_params["extra_body"],
+            response_format={"type": "json_object"}
         )
         return response.choices[0].message.content
 
@@ -55,12 +56,21 @@ class AIAssessor:
 
     def assess_objectives_against_summaries(self,objectives,force_reload=False):
         """ Assesses each objective against the summary list """
-        ai_responses = {}
+        ai_assessments = {}
         for objective in objectives['objectives']:
             print(objective)
-            ai_response = self.assess_objective_against_summaries(objective,force_reload=force_reload)
-            ai_responses[objective['name']] = ai_response
-        return ai_responses
+            ai_assessment = self.assess_objective_against_summaries(objective,force_reload=force_reload)
+            ai_assessments[objective['name']] = ai_assessment
+
+        # re-rank these now
+        ranked_assessments = {}
+        print("Re-ranking assessments")
+        for objective in objectives['objectives']:
+            assessments = ai_assessments[objective['name']]
+            ranked_assessment = self.rerank_assessments_against_objective(objective,assessments,force_reload=False)
+            ranked_assessments[objective['name']] = ranked_assessment
+
+        return ranked_assessments
 
     def assess_objective_against_summaries(self,objective,force_reload=False):
         """ Assesses one objective against the summary list """
@@ -95,30 +105,52 @@ class AIAssessor:
         print(f"Asking AI to assess funding opportunity {funding_id} against objective {safe_name}")
         if output_path.exists():
             print("Loading cached response")
-            ai_response = output_path.read_bytes()
-            return ai_response
+            assessment = json.loads(output_path.read_bytes())
+            # temporary fix
+            if assessment.get("id") is None:
+                assessment["id"] = funding_id
+
+
+            return assessment
 
         print("Querying AI")
         ai_response = self.get_response_to_query(ai_message_list)
 
+        # parse as json
+        assessment = json.loads(ai_response)
+
+        # add in the id
+        assessment["id"] = funding_id
+
         # save it
         with output_path.open("w",encoding="utf-8") as file:
-            file.write(ai_response)
+            json.dump(assessment,file)
 
-        return ai_response
+        return assessment
 
     def rerank_assessments_against_objective(self,objective,assessments,force_reload=False):
         """ Take the assessments and re-rank them"""
 
+        # lets ignore assessments with "do not pursue" as it makes no sense to rank them
+        feasible_assessments = []
+        for i, assessment in enumerate(assessments):
+            if assessment["recommendation"] != "do not pursue":
+                assessment["rank_id"] = i
+                feasible_assessments.append(assessment)
+
+        num_feasible_assessments = len(feasible_assessments)
+
+        print(f"there are {num_feasible_assessments} feasible assessments")
+
         # construct the message list for the API call
-        ranking_prompt = self.ai_prompts["ranking_prompt"] \
+        reranking_prompt = self.ai_prompts["reranking_prompt"] \
             .replace("TODAY",str(datetime.now())) \
-            .replace("RESEARCH_OBJECTIVE",str(objective)) \
-            .replace("FUNDING_SUMMARY",str(assessments))
+            .replace("N_ASSESSMENTS",str(num_feasible_assessments)) \
+            .replace("ASSESSMENTS",str(feasible_assessments))
 
         ai_message_list=[
-            {"role": "system", "content": self.ai_prompts["ranking_system_prompt"]},
-            {"role": "user", "content": ranking_prompt},
+            {"role": "system", "content": self.ai_prompts["reranking_system_prompt"]},
+            {"role": "user", "content": reranking_prompt},
         ]
 
         # we want to cache this too unless we force it
@@ -127,20 +159,29 @@ class AIAssessor:
         output_filename = f"data/ai_output/{safe_name}_final_ranking.json"
         output_path = Path(output_filename)
 
-        print("Asking AI to rank funding opportunities against objective")
+        print(f"Asking AI to re-rank funding opportunities for {safe_name} against objective and each other")
         if output_path.exists():
             print("Loading cached response")
-            ai_response = output_path.read_bytes()
-            return ai_response
+            ranked_assessments = output_path.read_bytes()
+            return ranked_assessments
 
-        print("Querying AI")
+        print("Querying AI for rankings")
         ai_response = self.get_response_to_query(ai_message_list)
+        rankings = json.loads(ai_response)
+
+        rank_by_id = {item["rank_id"]: item["rank"] for item in rankings}
+
+        for assessment in assessments:
+            assessment["rank"] = rank_by_id[assessment["rank_id"]]
+
+        # order by rank
+        assessments.sort(key=lambda x: x["rank"])
 
         # save it
-        with output_path.open("w",encoding="utf-8") as file:
-            file.write(ai_response)
+        with output_path.open("w", encoding="utf-8") as file:
+            json.dump(assessments, file, indent=2)
 
-        return ai_response
+        return assessments
 
     def __init__(self,funding_details,ai_params_path,ai_prompts_path):
         self.fd = funding_details

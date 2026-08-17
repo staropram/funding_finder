@@ -7,6 +7,7 @@
 {
   "name": "theatreman",
   "details": "We have access to pseudonymised individual-level surgical and linked healthcare data, together with clinical collaboration from a bowel surgeon. We are looking for good research questions that can make use of these data, particularly around colorectal and gastrointestinal disease, IBD, surgery, immunology, surgical outcomes, complications, inequalities and variation in care. We are open to observational, prediction, service-evaluation and data-science approaches where there is a strong clinical question."
-}
+},
+{"name" : "Kidney data", "details" :"We have access to pseudonymised individual level renal data linked to GP and other hospital data, we need to find something to do with it. We also have free-text renal data, so an LLM thing is also possible, but the priority is probably the kidney stuff. Our first idea is to see if people with routine markers are on the register, i.e is anyone missed and then to quantify inequalities or just the scale of the problem."}
 	]
 }

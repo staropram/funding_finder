@@ -17,13 +17,13 @@ def main():
     )
 
     # load funding objectives
-    ai_objectives_path = "config/kidney_objective.json"
+    ai_objectives_path = "config/ai_objectives.json"
     with Path(ai_objectives_path).open(encoding="utf-8") as file:
         objectives = json.load(file)
 
     ai_responses = ai_assessor.assess_objectives_against_summaries(objectives)
 
-    html_generator = HTMLGenerator(ai_responses["Babi"])
+    #html_generator = HTMLGenerator(ai_responses["Babi"])
 
 
 if __name__ == "__main__":
