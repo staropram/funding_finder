@@ -1,0 +1,12 @@
+{
+	"objectives":[
+		{
+  "name": "Babi",
+  "details": "We are developing a Kent-based longitudinal birth cohort (Born and Bred In Kent) and have the main collaborators on board, but need funding to establish and develop it. The aim is to create a reusable early-life research platform linking participant data with routine health and environmental data, potentially including location and environmental exposures, early growth, infections and developmental outcomes. We are interested both in funding to establish the cohort infrastructure and in specific early-life, environmental health or child health research that could provide a strong initial scientific focus."
+},
+{
+  "name": "theatreman",
+  "details": "We have access to pseudonymised individual-level surgical and linked healthcare data, together with clinical collaboration from a bowel surgeon. We are looking for good research questions that can make use of these data, particularly around colorectal and gastrointestinal disease, IBD, surgery, immunology, surgical outcomes, complications, inequalities and variation in care. We are open to observational, prediction, service-evaluation and data-science approaches where there is a strong clinical question."
+}
+	]
+}

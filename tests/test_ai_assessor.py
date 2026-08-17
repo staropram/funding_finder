@@ -5,7 +5,7 @@ from fundscrape.nihr_detail_page import NihrDetailPage
 
 def test_ai_assessor():
     # we need a test page and a card
-    test_page_path = Path(f"tests/test_data/detail_page0.html")
+    test_page_path = Path(f"tests/test_data/detail_page2.html")
     content = test_page_path.read_bytes()
     detail_page = NihrDetailPage(content,funding_card=NihrFundingCard.dummy_card())
 
