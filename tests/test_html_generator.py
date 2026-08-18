@@ -4,14 +4,14 @@ from pathlib import Path
 
 def test_ai_assessor():
     # load the dummy data
-    ai_response_filename = Path("tests/test_data/kidney_ai_response.txt")
-    with ai_response_filename.open() as file:
-        ai_response = file.read()
+    ranked_assessments_filename = Path("tests/test_data/kidney_data_final_ranking.json")
+    with ranked_assessments_filename.open() as file:
+        ranked_assessments = json.load(file)
 
     # setup the HTMLGenerator
-    html_generator = HTMLGenerator(ai_response)
+    html_generator = HTMLGenerator(ranked_assessments)
 
-    html_generator.to_html("tests/test_data/kidney_ai_response.html")
+    html_generator.to_html("tests/test_data/kidney_ranked_assessments.html")
 
 
 if __name__ == "__main__":

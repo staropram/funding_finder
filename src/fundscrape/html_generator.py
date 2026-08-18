@@ -1,28 +1,18 @@
 import json
 from pathlib import Path
+from email.message import EmailMessage
 
 class HTMLGenerator:
-    # make sure the ai response is valid json and sorted
-    def sort_ai_response(self,ai_response_raw):
-        print("sort_ai_response")
-        ai_response_raw_json = json.loads(ai_response_raw)
-        ai_response_sorted = sorted(
-            ai_response_raw_json.items(),
-            key=lambda item: item[1].get("fit_score", 0),
-            reverse=True
-        )
-        return ai_response_sorted
 
+    def __init__(self,ranked_assessments):
+        self.ranked_assessments = ranked_assessments
 
-    def __init__(self,ai_response):
-        self.ai_response = self.sort_ai_response(ai_response)
-
-    def _build_card_html(self, item_id, data):
+    def _build_card_html(self, data):
         """Builds HTML for a single opportunity card."""
         concerns_li = "".join([f"<li>{c}</li>" for c in data.get("key_concerns", [])])
 
         return f"""
-        <div class="card" id="call-{item_id}">
+        <div class="card" id="call-{data.get("id",[])}">
             <div class="header">
                 <div class="scores">
                     <div class="score-box">
@@ -61,10 +51,11 @@ class HTMLGenerator:
 
     def to_html(self, html_file_name):
         # Generate HTML for all sorted cards
-        cards_markup = "".join([
-            self._build_card_html(item_id, data) 
-            for item_id, data in self.ai_response
-        ])
+        cards_markup = "".join(
+            self._build_card_html(assessment)
+            for assessment in self.ranked_assessments
+            if assessment["recommendation"] != "do not pursue"
+        )
 
         # Load your base template
         with open("config/output_template.html", "r") as f:
@@ -76,5 +67,19 @@ class HTMLGenerator:
         # Write to destination file
         with open(html_file_name, "w") as f:
             f.write(final_html)
+
+        # generate email too
+        msg = EmailMessage()
+        msg["Subject"] = "Funding opportunities"
+        msg["From"] = "you@example.com"
+        msg["To"] = "recipient@example.com"
+
+        msg.set_content(
+            final_html,
+            subtype="html"
+        )
+
+        email_filename = "tests/test_data/kidney_ranked_assessments.eml"
+        Path(email_filename).write_bytes(msg.as_bytes())
 
         print(f"Report generated: {html_file_name}")

@@ -11,14 +11,18 @@ from datetime import date,datetime
 # we are using deepseek because it's cheap
 class AIAssessor:
 
-    def get_response_to_query(self,message_list):
+    def get_response_to_query(self,message_list,think=False):
         # send the request
         response = self.ai_client.chat.completions.create(
             model=self.ai_params["model"],
             messages=message_list,
             stream=(self.ai_params["stream"]=="True"),
             reasoning_effort=self.ai_params["reasoning_effort"],
-            extra_body=self.ai_params["extra_body"],
+            extra_body={
+                "thinking" : {
+                     "type": "enabled" if think else "disabled"
+                }
+            },
             response_format={"type": "json_object"}
         )
         return response.choices[0].message.content
@@ -133,10 +137,13 @@ class AIAssessor:
 
         # lets ignore assessments with "do not pursue" as it makes no sense to rank them
         feasible_assessments = []
+        infeasible_assessments = []
         for i, assessment in enumerate(assessments):
             if assessment["recommendation"] != "do not pursue":
                 assessment["rank_id"] = i
                 feasible_assessments.append(assessment)
+            else:
+                infeasible_assessments.append(assessment)
 
         num_feasible_assessments = len(feasible_assessments)
 
@@ -166,22 +173,26 @@ class AIAssessor:
             return ranked_assessments
 
         print("Querying AI for rankings")
-        ai_response = self.get_response_to_query(ai_message_list)
+        ai_response = self.get_response_to_query(ai_message_list,think=True)
         rankings = json.loads(ai_response)
 
         rank_by_id = {item["rank_id"]: item["rank"] for item in rankings}
 
-        for assessment in assessments:
+        for assessment in feasible_assessments:
             assessment["rank"] = rank_by_id[assessment["rank_id"]]
 
         # order by rank
-        assessments.sort(key=lambda x: x["rank"])
+        feasible_assessments.sort(key=lambda x: x["rank"])
+
+        # append the infeasible
+        for assessment in infeasible_assessments:
+            feasible_assessments.append(assessment)
 
         # save it
         with output_path.open("w", encoding="utf-8") as file:
-            json.dump(assessments, file, indent=2)
+            json.dump(feasible_assessments, file, indent=2)
 
-        return assessments
+        return feasible_assessments
 
     def __init__(self,funding_details,ai_params_path,ai_prompts_path):
         self.fd = funding_details
