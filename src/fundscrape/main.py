@@ -23,7 +23,9 @@ def main():
 
     ai_responses = ai_assessor.assess_objectives_against_summaries(objectives)
 
-    #html_generator = HTMLGenerator(ai_responses["Babi"])
+    for name, response in ai_responses.items():
+        html_generator = HTMLGenerator(response,name)
+        html_generator.to_html()
 
 
 if __name__ == "__main__":

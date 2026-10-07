@@ -114,9 +114,17 @@
         .meta-footer a:hover {
             text-decoration: underline;
         }
+
+        .dates {
+            display: flex;
+            gap: 2rem;
+            margin: 1rem 0;
+        }
     </style>
 </head>
 <body>
+    <h1>Summary</h1>
+    {priority_summary}
     <h1>Evaluated Opportunities</h1>
     <!-- Python will inject card blocks here -->
     {cards_html}

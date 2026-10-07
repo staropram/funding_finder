@@ -86,6 +86,16 @@ class NihrFundingCard:
         
         return status_div.get_text(strip=True)
 
+    def __json__(self):
+        return {
+            "link": self.link,
+            "title": self.title,
+            "desc": self.desc,
+            "status": self.status,
+            "opens": self.opens.isoformat() if self.opens else None,
+            "closes": self.closes.isoformat() if self.closes else None,
+        }
+
     def to_dict(self):
         return {
             "link": self.link,

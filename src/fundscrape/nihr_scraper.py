@@ -7,7 +7,7 @@ import random
 from hashlib import sha256
 from pathlib import Path
 from bs4 import BeautifulSoup
-from datetime import datetime, timezone, timedelta
+from datetime import datetime, timezone, timedelta, date
 from dataclasses import dataclass
 from fundscrape.nihr_funding_card import NihrFundingCard
 from fundscrape.nihr_detail_page import NihrDetailPage
@@ -20,7 +20,7 @@ class NihrScraper:
         current_ts =  datetime.now(timezone.utc).isoformat(),
 
         # check when we last fetched and refetch if funding_freshness_days is exceeded
-        cached_cards_fn = Path("data/cached_cards.json")
+        cached_cards_fn = Path("data/cache/cached_cards.json")
         if not cached_cards_fn.exists():
             force_reload = True
 
@@ -50,9 +50,20 @@ class NihrScraper:
         # get the funding cards
         funding_cards = self.fetch_funding_card_pages(num_pages)
 
+        # for some reason some cards are listed as "open" even when the funding date has closed
+        today = datetime.now(timezone.utc)
+        definitely_open_cards = [
+            card
+            for card in funding_cards
+            if (
+                card.closes == None
+                or card.closes >= today
+            )
+        ]
+
         cached_card_data = {
             "fetched_at": current_ts,
-            "cards": funding_cards
+            "cards": definitely_open_cards
         }
 
         with cached_cards_fn.open("w", encoding="utf-8") as file:
@@ -64,7 +75,7 @@ class NihrScraper:
                 ensure_ascii=False,
             )
 
-        return funding_cards
+        return definitely_open_cards
 
     def load_funding_data(self,force_reload=False):
 
@@ -146,7 +157,7 @@ class NihrScraper:
         results = []
         for page_number in range(0,num_pages):
             results.append(self.fetch_funding_card_page(page_number))
-            delay = random.uniform(0.5, 2)
+            delay = random.uniform(0.5, 1)
             print(f"Sleeping for {delay:.1f}s")
             time.sleep(delay)
 

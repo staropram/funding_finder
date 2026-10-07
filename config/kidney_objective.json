@@ -1,5 +1,8 @@
 {
-	"objectives":[
-		{"name" : "Kidney data", "details" :"We have access to pseudonymised individual level renal data linked to GP and other hospital data, we need to find something to do with it. We also have free-text renal data, so an LLM thing is also possible, but the priority is probably the kidney stuff. Our first idea is to see if people with routine markers are on the register, i.e is anyone missed and then to quantify inequalities or just the scale of the problem."}
-	]
+    "objectives": [
+        {
+            "name": "Kidney disease detection and inequalities",
+            "details": "Use linked pseudonymised renal, primary care and hospital data to investigate whether people with evidence of chronic kidney disease in routinely collected clinical data are appropriately identified, recorded and referred for care. Initial work could identify patients meeting clinical or laboratory criteria for CKD who are missing from disease registers or specialist pathways, quantify the scale of any detection or referral gap, and examine inequalities by demographic, socioeconomic, geographic and clinical characteristics. The linked data could also support broader studies of CKD pathways, outcomes and variation in care. Free-text renal records are additionally available, creating opportunities for NLP or LLM-based methods where these add value."
+        }
+    ]
 }
