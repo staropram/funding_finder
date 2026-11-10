@@ -176,7 +176,12 @@ class AIAssessor:
 
         # we want to cache this too unless we force it
         # take the name and the hash of the details as the file name
-        output_filename = f"data/final_ai_output/{safe_name}_final_ranking.json"
+        key_material = json.dumps({
+            "objective": objective["details"],
+            "ids": sorted(a["id"] for a in feasible_assessments),
+        }, sort_keys=True)
+        rank_digest = sha256(key_material.encode()).hexdigest()[:16]
+        output_filename = f"data/final_ai_output/{safe_name}_{rank_digest}_final_ranking.json"
         output_path = Path(output_filename)
 
         print(f"Asking AI to re-rank funding opportunities for {safe_name} against objective and each other")

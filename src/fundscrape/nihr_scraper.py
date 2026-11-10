@@ -48,7 +48,7 @@ class NihrScraper:
         num_pages = int(funding_data.find("li",class_="page-item--last").find_all("span")[-1].text)
         print(f"We have {num_pages} pages to fetch")
         # get the funding cards
-        funding_cards = self.fetch_funding_card_pages(num_pages)
+        funding_cards = self.fetch_funding_card_pages(num_pages,force_reload=True)
 
         # for some reason some cards are listed as "open" even when the funding date has closed
         today = datetime.now(timezone.utc)
@@ -153,10 +153,10 @@ class NihrScraper:
             results.append(self.fetch_funding_detail_page(funding_cards[funding_card_index]))
         return results
 
-    def fetch_funding_card_pages(self,num_pages):
+    def fetch_funding_card_pages(self,num_pages,force_reload=False):
         results = []
         for page_number in range(0,num_pages):
-            results.append(self.fetch_funding_card_page(page_number))
+            results.append(self.fetch_funding_card_page(page_number,force_reload=force_reload))
             delay = random.uniform(0.5, 1)
             print(f"Sleeping for {delay:.1f}s")
             time.sleep(delay)
@@ -169,7 +169,7 @@ class NihrScraper:
         ]
         return flat_results
 
-    def fetch_funding_card_page(self,page_number):
+    def fetch_funding_card_page(self,page_number,force_reload=False):
         # adjust params
         params = self.funding_params.set("page",page_number)
             
@@ -178,7 +178,8 @@ class NihrScraper:
         content = self.fetch_url_cached(
             url=self.main_funding_endpoint,
             cached_fn=cached_fn,
-            params=params
+            params=params,
+            force_reload=force_reload
         )
         
         page_data = BeautifulSoup(content,"lxml")
